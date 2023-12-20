@@ -39,11 +39,154 @@
 
   Testing the server - run `npm run test-todoServer` command in terminal
  */
-  const express = require('express');
-  const bodyParser = require('body-parser');
-  
-  const app = express();
-  
-  app.use(bodyParser.json());
-  
-  module.exports = app;
+const express = require('express');
+const bodyParser = require('body-parser');
+const app = express();
+app.use(bodyParser.json());
+
+let todoIdCounter = 0;
+
+const todoItems = [];
+
+
+app.get("/todos", function(req, res) {
+  res.status(200).json(todoItems);
+});
+
+
+app.get("/todos/:id", function(req, res) {
+  const id = req.params.id;
+  let isTodoItemFound = false;
+  for (let i = 0; i < todoItems.length; i++) {
+    if (todoItems[i].id == id) {
+      isTodoItemFound = true;
+      res.status(200).json(todoItems[i]);
+    }
+  }
+  if (!isTodoItemFound) {
+    res.status(404).send(`Details of todo item with ID ${id} are not found`);
+  }
+});
+
+
+// { "title": "Buy groceries", "completed": false, "description": "I should buy groceries" }
+app.post("/todos/", function(req, res) {
+  const postTodoItem = req.body;
+  todoIdCounter = todoIdCounter + 1;
+  postTodoItem["id"] = todoIdCounter;
+  console.log(`Todo item to be added: ${postTodoItem}`);
+  todoItems.push(postTodoItem);
+  res.status(201).json({"id": todoIdCounter});
+});
+
+
+// { "title": "Buy groceries", "completed": true }
+app.put("/todos/:id", function(req, res) {
+  let isTodoItemUpdated = false;
+  const id = req.params.id;
+  const todo = req.body;
+  for (let i = 0; i < todoItems.length; i++) {
+    if (todoItems[i].id == id) {
+      console.log("Found the id, going on with the update");
+      for (const key in todo) {
+        if (todoItems[i].hasOwnProperty(key)) {
+          console.log(`To be updated: ${todoItems[i]}`);
+          console.log(`Going on with this update:\n ${todoItems[i][key]} = ${todo[key]}`);
+          todoItems[i][key] = todo[key];
+        }
+      }
+      isTodoItemUpdated = true;
+    }
+  }
+  if (isTodoItemUpdated) {
+    res.status(200).send();
+  } else {
+    res.status(404).send();
+  }
+});
+
+
+app.delete("/todos/:id", function(req, res) {
+  const id = req.params.id;
+  let isTodoItemDeleted = false;
+  for (let i = 0; i < todoItems.length; i++) {
+    if (todoItems[i].id == id) {
+      console.log("This object needs to be deleted");
+      todoItems.splice(i, i+1);
+      console.log("Object deleted");
+      isTodoItemDeleted = true;
+    }
+  }
+  if (isTodoItemDeleted) {
+    res.status(200).send();
+  } else {
+    res.status(404).send();
+  }
+});
+
+
+module.exports = app;
+
+// Testing the code:
+
+// 01:49 $ npm run test-todoServer
+
+// > 02-nodejs@1.0.0 test-todoServer
+// > ./node_modules/jest/bin/jest.js ./tests/todoServer.test.js
+
+//   console.log
+//     Todo item to be added: [object Object]
+
+//       at log (todoServer.js:77:11)
+
+//   console.log
+//     Found the id, going on with the update
+
+//       at log (todoServer.js:90:15)
+
+//   console.log
+//     To be updated: [object Object]
+
+//       at log (todoServer.js:93:19)
+
+//   console.log
+//     Going on with this update:
+//      New Todo = Updated Todo
+
+//       at log (todoServer.js:94:19)
+
+//   console.log
+//     To be updated: [object Object]
+
+//       at log (todoServer.js:93:19)
+
+//   console.log
+//     Going on with this update:
+//      A new todo item = An updated todo item
+
+//       at log (todoServer.js:94:19)
+
+//   console.log
+//     This object needs to be deleted
+
+//       at log (todoServer.js:114:15)
+
+//   console.log
+//     Object deleted
+
+//       at log (todoServer.js:116:15)
+
+//  PASS  tests/todoServer.test.js
+//   Todo API
+//     ✓ should create a new todo item (48 ms)
+//     ✓ should retrieve all todo items (5 ms)
+//     ✓ should retrieve a specific todo item by ID (2 ms)
+//     ✓ should update a specific todo item (9 ms)
+//     ✓ should delete a specific todo item (8 ms)
+//     ✓ should return 404 for a non-existent todo item (5 ms)
+
+// Test Suites: 1 passed, 1 total
+// Tests:       6 passed, 6 total
+// Snapshots:   0 total
+// Time:        0.401 s, estimated 1 s
+// Ran all test suites matching /.\/tests\/todoServer.test.js/i.
